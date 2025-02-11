@@ -1,3 +1,5 @@
 # ReactNative-Hooks-Pomodoro
 
-[Fanzine Pomodoro](https://github.com/giramos/ReactNative-Hooks-NASA/blob/master/Doc/FanZine_Pomodoro.pdf)
+![Portada](!https://github.com/giramos/ReactNative-Hooks-Pomodoro/blob/master/Doc/Diapositiva11.PNG)
+![Intro](!https://github.com/giramos/ReactNative-Hooks-Pomodoro/blob/master/Doc/Diapositiva12.PNG)
+![Vistas](!https://github.com/giramos/ReactNative-Hooks-Pomodoro/blob/master/Doc/Diapositiva13.PNG)
