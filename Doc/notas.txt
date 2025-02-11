@@ -1,0 +1,25 @@
+Proyecto: Gestión de tiempos con Pomodoro
+
+- Para crear un nuevo proyecto Expo:
+    npx create-expo-app@latest
+
+- Pomodoro: Timer. 
+    * Pomodoro: tiempo de trabajo
+    * Short break: descanso corto
+    * Long break: descanso largo
+
+- Features:
+    * Agregar sonidos
+    * Usa Expo (desarrollo mas amplio)
+        - Vamos a la carpeta en donde deseamos crear nuestro proyecto
+        - Comando: npx create-expo-app PomodoroApp
+        - Vas a la carpeta creada PomodoroApp
+        - Comando: npx expo start
+        - Crea carpeta src/components
+        - Instalar audio. Paramos el servidor y ejecutamos el siguiente comando:
+            * npx expo install expo-av
+
+
+Descargas de imagenes, musica , etc (completamente gratis y sin registro) : https://pixabay.com/es/
+Otras: https://freesound.org/ (necesitas registro)
+
