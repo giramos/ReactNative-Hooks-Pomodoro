@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,149 +8,126 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-// Importamos el módulo de Audio de Expo
 import { Audio } from "expo-av";
 
-const colors = { // Colores para cada modo
+const colors = {
   POMO: "#F7DC6F",
   SHORT: "#A2D9CE",
   BREAK: "#D7BDE2",
 };
 
-// Componente principal 
+type TimeMode = "POMO" | "SHORT" | "BREAK";
+
 export default function App() {
-  const [isActive, setIsActive] = useState(false); // Estado para saber si el temporizador está activo
-  const [currentTime, setCurrentTime] = useState<"POMO" | "SHORT" | "BREAK">("POMO"); // Estado para saber en qué modo estamos
-  const [time, setTime] = useState(60 * 25); // Estado para el tiempo restante
+  const [isActive, setIsActive] = useState(false);
+  const [currentTime, setCurrentTime] = useState<TimeMode>("POMO");
+  const [time, setTime] = useState(60 * 25);
+  const [pomoTime, setPomoTime] = useState(25 * 60);
+  const [shortBreakTime, setShortBreakTime] = useState(5 * 60);
+  const [longBreakTime, setLongBreakTime] = useState(15 * 60);
 
-  // Customizable time durations (in seconds)
-  const [pomoTime, setPomoTime] = useState(25 * 60); // Duración del modo POMO
-  const [shortBreakTime, setShortBreakTime] = useState(5 * 60); // Duración del modo SHORT
-  const [longBreakTime, setLongBreakTime] = useState(15 * 60); // Duración del modo BREAK
-
-  // Efecto que se ejecuta cada vez que cambia el estado de isActive o time 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null; // Variable para almacenar el intervalo de tiempo
-
-    if (isActive) { // Si el temporizador está activo, restamos 1 al tiempo cada segundo 
+    let interval: NodeJS.Timeout;
+    if (isActive) {
       interval = setInterval(() => {
         setTime((prev) => Math.max(prev - 1, 0));
-      }, 1000); // Cada 1000ms = 1s
+      }, 1000);
     }
-
-    if (time === 0) { // Si el tiempo llega a 0, cambiamos al siguiente modo
-      setIsActive(false); // Pausamos el temporizador
-      if (currentTime === "POMO") { // Si estamos en modo POMO, cambiamos a SHORT
+    if (time === 0) {
+      setIsActive(false);
+      playEndSound();
+      if (currentTime === "POMO") {
         setCurrentTime("SHORT");
-        setTime(shortBreakTime); // Establecemos el tiempo restante al tiempo del modo SHORT
-      } else if (currentTime === "SHORT") { // Si estamos en modo SHORT, cambiamos a BREAK
+        setTime(shortBreakTime);
+      } else if (currentTime === "SHORT") {
         setCurrentTime("BREAK");
         setTime(longBreakTime);
-      } else { // Si estamos en modo BREAK, cambiamos a POMO
+      } else {
         setCurrentTime("POMO");
         setTime(pomoTime);
       }
     }
+    return () => interval && clearInterval(interval);
+  }, [isActive, time]);
 
-    return () => { // Función que se ejecuta al desmontar el componente
-      if (interval) clearInterval(interval); // Limpiamos el intervalo de tiempo
-    };
-  }, [isActive, time, currentTime]); // Dependencias del efecto 
-
-  // Función que se ejecuta al pulsar el botón de START/STOP
-  const handleStartStop = async () => {
-    await playSound(); // Reproducimos un sonido al pulsar el botón
-    setIsActive((prev) => !prev); // Cambiamos el estado de isActive
+  const handleStartStop = () => {
+    playClickSound();
+    setIsActive(!isActive);
   };
 
-  // Función para reproducir un son al pulsar el botón
-  async function playSound() {
-    const { sound } = await Audio.Sound.createAsync( // Creamos un objeto de sonido
-      require("../../assets/music/click.mp3") // Ruta del archivo de sonido
-    );
-    await sound.playAsync(); // Reproducimos el sonido
-    await sound.unloadAsync(); // Descargamos el sonido
+  async function playClickSound() {
+    const { sound } = await Audio.Sound.createAsync(require("../../assets/music/click.mp3"));
+    await sound.playAsync();
   }
 
-  const handleModeChange = (mode: "POMO" | "SHORT" | "BREAK") => { // Función para cambiar de modo 
-    setCurrentTime(mode); // Cambiamos el modo actual
-    setTime( // Establecemos el tiempo restante según el modo
-      mode === "POMO"
-        ? pomoTime
-        : mode === "SHORT"
-          ? shortBreakTime
-          : longBreakTime
-    );
+  async function playEndSound() {
+    const { sound } = await Audio.Sound.createAsync(require("../../assets/music/fin.mp3"));
+    await sound.playAsync();
+  }
 
-    setIsActive(false); // Pausamos el temporizador si cambia el modo
+  const handleModeChange = (mode: TimeMode) => {
+    setCurrentTime(mode);
+    setTime(mode === "POMO" ? pomoTime : mode === "SHORT" ? shortBreakTime : longBreakTime);
+    setIsActive(false);
   };
 
-  return ( // Renderizamos la interfaz
-    <SafeAreaView style={[styles.container, { backgroundColor: colors[currentTime] }]}>
-      <View style={{ flex: 1, paddingHorizontal: 15, paddingTop: Platform.OS == "android" ? 30 : 0 }}>
-        <Text style={styles.title}>Pomodoro Timer</Text>
+  const handleTimeChange = (value: string, setter: React.Dispatch<React.SetStateAction<number>>) => {
+    const numericValue = Number(value);
+    if (!isNaN(numericValue) && numericValue >= 0) {
+      setter(numericValue * 60);
+    }
+  };
 
-        {/* Botones para cambiar de modo */}
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors[currentTime] }]}> 
+      <View style={styles.innerContainer}>
+        <Text style={styles.title}>Germán Timer</Text>
         <View style={styles.modeButtons}>
-          <TouchableOpacity
-            style={[styles.modeButton, currentTime === "POMO" && styles.activeMode]}
-            onPress={() => handleModeChange("POMO")}
-          >
-            <Text>Pomodoro</Text>
+          <TouchableOpacity style={[styles.modeButton, currentTime === "POMO" && styles.activeMode]} onPress={() => handleModeChange("POMO")}>
+            <Text style={styles.modeButtonText}>Pomodoro</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modeButton, currentTime === "SHORT" && styles.activeMode]}
-            onPress={() => handleModeChange("SHORT")}
-          >
-            <Text>Short Break</Text>
+          <TouchableOpacity style={[styles.modeButton, currentTime === "SHORT" && styles.activeMode]} onPress={() => handleModeChange("SHORT")}>
+            <Text style={styles.modeButtonText}>Short Break</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modeButton, currentTime === "BREAK" && styles.activeMode]}
-            onPress={() => handleModeChange("BREAK")}
-          >
-            <Text>Long Break</Text>
+          <TouchableOpacity style={[styles.modeButton, currentTime === "BREAK" && styles.activeMode]} onPress={() => handleModeChange("BREAK")}>
+            <Text style={styles.modeButtonText}>Long Break</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Inputs para configurar tiempos */}
         <View style={styles.settingsContainer}>
           <View style={styles.inputRow}>
-            <Text>Work (min):</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={(pomoTime / 60).toString()}
-              onChangeText={(value) => setPomoTime(Number(value) * 60)}
+            <Text style={styles.label}>Work (min):</Text>
+            <TextInput 
+              style={styles.input} 
+              keyboardType="numeric" 
+              value={(pomoTime / 60).toString()} 
+              onChangeText={(value) => handleTimeChange(value, setPomoTime)}
             />
           </View>
-
           <View style={styles.inputRow}>
-            <Text>Short Break (min):</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={(shortBreakTime / 60).toString()}
-              onChangeText={(value) => setShortBreakTime(Number(value) * 60)}
+            <Text style={styles.label}>Short Break (min):</Text>
+            <TextInput 
+              style={styles.input} 
+              keyboardType="numeric" 
+              value={(shortBreakTime / 60).toString()} 
+              onChangeText={(value) => handleTimeChange(value, setShortBreakTime)}
             />
           </View>
-
           <View style={styles.inputRow}>
-            <Text>Long Break (min):</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={(longBreakTime / 60).toString()}
-              onChangeText={(value) => setLongBreakTime(Number(value) * 60)}
+            <Text style={styles.label}>Long Break (min):</Text>
+            <TextInput 
+              style={styles.input} 
+              keyboardType="numeric" 
+              value={(longBreakTime / 60).toString()} 
+              onChangeText={(value) => handleTimeChange(value, setLongBreakTime)}
             />
           </View>
         </View>
 
-        <Text style={styles.timeDisplay}>{`${Math.floor(time / 60)
-          .toString()
-          .padStart(2, "0")}:${(time % 60).toString().padStart(2, "0")}`}</Text>
+        <Text style={styles.timeDisplay}>{`${Math.floor(time / 60).toString().padStart(2, "0")}:${(time % 60).toString().padStart(2, "0")}`}</Text>
 
         <TouchableOpacity style={styles.button} onPress={handleStartStop}>
-          <Text style={{ color: "white", fontWeight: "bold" }}>{isActive ? "STOP" : "START"}</Text>
+          <Text style={styles.buttonText}>{isActive ? "STOP" : "START"}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -161,26 +138,42 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  innerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: 20,
+    textAlign: "center",
   },
   modeButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 10,
+    width: "100%",
+    marginBottom: 20,
   },
   modeButton: {
-    padding: 10,
+    padding: 12,
     backgroundColor: "#ccc",
     borderRadius: 10,
+    flex: 1,
+    marginHorizontal: 5,
+    alignItems: "center",
   },
   activeMode: {
     backgroundColor: "#333",
   },
+  modeButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
   settingsContainer: {
-    marginVertical: 20,
+    width: "100%",
+    marginBottom: 20,
   },
   inputRow: {
     flexDirection: "row",
@@ -188,24 +181,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
   },
+  label: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
     padding: 5,
-    width: 50,
+    width: 60,
     textAlign: "center",
-  },
-  button: {
-    alignItems: "center",
-    backgroundColor: "#333333",
-    padding: 15,
-    borderRadius: 15,
-    marginTop: 15,
+    borderRadius: 5,
   },
   timeDisplay: {
-    fontSize: 48,
-    textAlign: "center",
-    marginVertical: 20,
+    fontSize: 80,
+    fontWeight: "bold",
     color: "#333",
+    marginVertical: 20,
+  },
+  button: {
+    padding: 15,
+    backgroundColor: "#333",
+    borderRadius: 10,
+    alignItems: "center",
+    width: "100%",
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
